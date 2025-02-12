@@ -2,14 +2,13 @@ package io.github.taufik.kurahman.snakeladder;
 
 import java.util.*;
 
-public class Game {
+public class Game implements GameEventHandler {
     private IGameInput gameInput;
     private IDice dice;
     private Board board;
     private List<Player> players;
     private int currentPlayerIndex;
     private boolean hasWinner;
-    private final GameEventHandler eventHandler;
 
     public Game(int boardCells, IGameInput gameInput, IDice dice) {
         this.gameInput = gameInput;
@@ -17,22 +16,6 @@ public class Game {
         board = new Board(boardCells);
         currentPlayerIndex = 0;
         hasWinner = false;
-        eventHandler = new GameEventHandler() {
-            @Override
-            public void onGameStarted() {
-                Game.this.onGameStarted();
-            }
-
-            @Override
-            public void onPlayerRolledTheDice(Player player, int diceValue) {
-                Game.this.onPlayerRolledTheDice(player, diceValue);
-            }
-
-            @Override
-            public void onPlayerWin(Player player) {
-                Game.this.onPlayerWin(player);
-            }
-        };
     }
 
     public void start() {
@@ -40,17 +23,19 @@ public class Game {
         List<Ladder> ladders = gameInput.inputLadders(snakes);
         board.setPositionMap(snakes, ladders);
         players = gameInput.inputPlayers();
-        eventHandler.onGameStarted();
+        onGameStarted();
     }
 
-    private void onGameStarted() {
+    @Override
+    public void onGameStarted() {
         while (!hasWinner) {
             Player currentPlayer = players.get(currentPlayerIndex);
-            currentPlayer.rollTheDice(dice, eventHandler);
+            currentPlayer.rollTheDice(dice, this);
         }
     }
 
-    private void onPlayerRolledTheDice(Player player, int diceValue) {
+    @Override
+    public void onPlayerRolledTheDice(Player player, int diceValue) {
         int currentPosition = player.getPosition();
         int newPosition = currentPosition + diceValue;
 
@@ -66,14 +51,15 @@ public class Game {
             LogUtil.printPlayerMove(player.getName(), diceValue, currentPosition, finalPosition);
 
             if (finalPosition == board.getCells()) {
-                eventHandler.onPlayerWin(player);
+                onPlayerWin(player);
             }
         }
 
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     }
 
-    private void onPlayerWin(Player player) {
+    @Override
+    public void onPlayerWin(Player player) {
         System.out.println(player.getName() + " wins the game");
         hasWinner = true;
     }
